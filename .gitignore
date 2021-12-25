@@ -1,0 +1,5 @@
+obj/*
+Properties/*
+App.config
+appMKE.csproj
+!bin/Debug/txt/*
