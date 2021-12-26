@@ -290,19 +290,19 @@ namespace appMKE
 
             #region Вывод данных
 
-            Console.WriteLine("BEFORE BOUND CONDITIONS");
+            //Console.WriteLine("BEFORE BOUND CONDITIONS");
 
-            Console.WriteLine("Global vector b:");
-            b.Print();
+            //Console.WriteLine("Global vector b:");
+            //b.Print();
 
-            Console.WriteLine("Global matrix (ggl):");
-            ggl.Print();
+            //Console.WriteLine("Global matrix (ggl):");
+            //ggl.Print();
 
-            Console.WriteLine("Global matrix (ggu):");
-            ggu.Print();
+            //Console.WriteLine("Global matrix (ggu):");
+            //ggu.Print();
 
-            Console.WriteLine("DI:");
-            di.Print();
+            //Console.WriteLine("DI:");
+            //di.Print();
 
             foreach (Boundary item in boundary.Items)
             {
@@ -345,23 +345,23 @@ namespace appMKE
             }
 
 
-            Console.WriteLine("AFTER BOUND CONDITIONS (2,3)");
+            //Console.WriteLine("AFTER BOUND CONDITIONS (2,3)");
 
-            Console.WriteLine("Global vector b:");
-            b.Print();
+            //Console.WriteLine("Global vector b:");
+            //b.Print();
 
-            Console.WriteLine("Global matrix (ggl):");
-            ggl.Print();
+            //Console.WriteLine("Global matrix (ggl):");
+            //ggl.Print();
 
-            Console.WriteLine("Global matrix (ggu):");
-            ggu.Print();
+            //Console.WriteLine("Global matrix (ggu):");
+            //ggu.Print();
 
-            Console.WriteLine("DI:");
-            di.Print();
+            //Console.WriteLine("DI:");
+            //di.Print();
 
             Matrix A = buildMatrix(ggl, ggu, ig, jg, di);
-            Console.WriteLine("Матрица A:");
-            A.Print();
+            //Console.WriteLine("Матрица A:");
+            //A.Print();
 
             foreach (Boundary item in boundary.Items)
             {
@@ -369,6 +369,16 @@ namespace appMKE
                 {
                     for (int k = 0; k < item.localMatrix.Items.Count; k++)
                     {
+                        //di.Items[item.p[0]].m += item.localMatrix.Items[0].r.Items[0].m;
+                        //di.Items[item.p[1]].m += item.localMatrix.Items[1].r.Items[1].m;
+                        //int i_beg = ig.Items[item.p[1]].a;
+                        //int n = ig.Items[i_beg + 1].a - ig.Items[i_beg].a;
+                        //for (int j = 0; j < n; j++)
+                        //{
+                        //    ggl.Items[i_beg + j].m = 0;
+                        //    ggu.Items[i_beg + j].m = 0; 
+                        //}
+
                         int i = item.p[k];
                         for (int j = 0; j < A.Items.Count; j++)
                         {
@@ -391,41 +401,17 @@ namespace appMKE
                 }
             }
 
-            Console.WriteLine("Матрица A (AFTER BOUND CONDITIONS 1 )");
+            Console.WriteLine("Matrix A:");
             A.Print();
+
             Vector gX = A / b;
-            Console.WriteLine("Vector X:");
+            Console.WriteLine();
+            Console.WriteLine("vector X:");
             gX.Print();
 
-            //foreach (Boundary item in boundary.Items)
-            //{
-            //    if (item.setFirstCondition())
-            //    {
-            //        for (int j = 0; j < item.localMatrix.Items.Count; j++)
-            //        {
-            //            di.Items[item.p[j]].m = 1;
-            //            int i_beg = ig.Items[item.p[j]].a;                        
-            //            for (int k = 0; k < j; k++)
-            //            {
-            //                int i_end = ig.Items[item.p[j] + 1].a;
-            //                for (int n= i_beg; n < i_end; n++)
-            //                {
-            //                    ggl.Items[n].m = 0;
-            //                }
-            //            }
-            //        }
-
-            //        //правая часть//
-            //        for (int j = 0; j < 2; j++)
-            //        {
-            //            b.Items[item.p[j]].m = item.localVector.Items[j].m;
-            //        }
-            //    }
-            //}
-
-            Console.WriteLine("AFTER BOUND CONDITIONS 1 ");
-
-            Console.WriteLine("Global vector b:");
+            //Console.WriteLine("AFTER BOUND CONDITIONS 1 ");
+            Console.WriteLine();
+            Console.WriteLine("vector b:");
             b.Print();
 
             //Console.WriteLine("Global matrix (ggl):");
@@ -468,7 +454,7 @@ namespace appMKE
             {
                 for (int i = 0; i < Items.Count; i++)
                 {
-                    Console.Write($"{ (String.Format("{0:f1}", Items[i].m))} ");
+                    Console.Write($"{(Items[i].m<0?"":" ")}{ (String.Format("{0:f2}", Items[i].m))} ");
                 }
                 Console.WriteLine();
             }
@@ -501,7 +487,7 @@ namespace appMKE
                 {
                     for (int j = 0; j < Items[i].r.Items.Count; j++)
                     {
-                        Console.Write($"{ (String.Format("{0:f1}", Items[i].r.Items[j].m))} ");
+                        Console.Write($"{(Items[i].r.Items[j].m<0 ? "":" ")}{(String.Format("{0:f2}", Items[i].r.Items[j].m))} ");
                     }
                     Console.WriteLine();
                 }
@@ -548,7 +534,7 @@ namespace appMKE
                 return res;
             }
 
-            static public Vector operator /(Matrix matr, Vector b) // A * x = b 
+            static public Vector operator /(Matrix matr, Vector b) // Нахождение x из A * x = b  => x = A / b
             {
                 int n = matr.Items.Count;
                 Vector x = new Vector(); for (int i = 0; i < b.Items.Count; i++) x.Add(b.Items[i].m);
@@ -569,6 +555,10 @@ namespace appMKE
                     x.Items[i].m = sum / matr.Items[i].r.Items[i].m;
                 }
                 return x;
+            }
+
+            public Matrix()
+            {
             }
         }
 
@@ -823,7 +813,20 @@ namespace appMKE
             }
             public double func1(int k)
             {
-                return Math.Pow(nodes[k].y, 2);
+                switch (this.condNum)
+                {
+                    case 0:
+                        return Math.Pow(nodes[k].y, 2);
+                    case 1:
+                        return 0;
+                    case 2:
+                        return 0;
+                    case 3:
+                        return 0;
+                    case 4:
+                        return 0;
+                }
+                return 0;
             }
             public double func2(int k)
             {
@@ -833,12 +836,31 @@ namespace appMKE
                         return 20;
                     case 1:
                         return 0;
+                    case 2:
+                        return 0;
+                    case 3:
+                        return 0;
+                    case 4:
+                        return 0;
                 }
                 return 0;
             }
             public double func3(int k)
             {
-                return 20 * nodes[k].y - 27;
+                switch (this.condNum)
+                {
+                    case 0:
+                        return 20 * nodes[k].y - 27;
+                    case 1:
+                        return 0;
+                    case 2:
+                        return 0;
+                    case 3:
+                        return 0;
+                    case 4:
+                        return 0;
+                }
+                return 0;
             }
             // 1-е краевое условие
             public bool setFirstCondition()
