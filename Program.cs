@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace appMKE
 {
@@ -64,17 +62,6 @@ namespace appMKE
             }
             return res;
         }
-        static Vector mat_mul_d(Vector di, Vector b)
-        {
-            Vector res = new Vector(); for (int i = 0; i < b.Items.Count; i++) res.Add();
-
-            for (int i = 0; i < res.Items.Count; i++)
-            {
-                res.Items[i].m += di.Items[i].m * b.Items[i].m;
-            }
-            return res;
-        }
-
         /// <summary>
         /// ЛОС
         /// </summary>
@@ -103,7 +90,7 @@ namespace appMKE
             }
 
             Vector r = new Vector(); for (int i = 0; i < mat_mul_res.Items.Count; i++) x.Add();
-            r = mat_mul_d(di, mat_mul_res);
+            r = di ^ mat_mul_res;
 
             double residual = r * r;
 
@@ -111,12 +98,12 @@ namespace appMKE
             double abs_residual_diff = Math.Abs(residual - residual_next);
 
             Vector z = new Vector(); for (int i = 0; i < r.Items.Count; i++) z.Add();
-            z = mat_mul_d(di, r);
+            z = di ^ r;
 
             mat_mul_res = mat_mul(ggl, ggu, ig, jg, di, z);
 
             Vector p = new Vector(); for (int i = 0; i < mat_mul_res.Items.Count; i++) p.Add();
-            p = mat_mul_d(di, mat_mul_res);
+            p = di ^ mat_mul_res;
 
             int k = 1;
             while (residual > eps && k < max_iter && abs_residual_diff > eps)
@@ -136,9 +123,9 @@ namespace appMKE
                 }
 
                 Vector ur = new Vector(); for (int i = 0; i < r.Items.Count; i++) ur.Add();
-                ur = mat_mul_d(di, r);
+                ur = di ^ r;
                 mat_mul_res = mat_mul(ggl, ggu, ig, jg, di, ur);
-                Vector dot_Rhs = mat_mul_d(di, mat_mul_res);
+                Vector dot_Rhs = di ^ mat_mul_res;
 
                 double beta = -(p * dot_Rhs) / pp;
 
@@ -154,7 +141,15 @@ namespace appMKE
             return x;
 
         }
-
+        /// <summary>
+        /// Постоение матрицы 
+        /// </summary>
+        /// <param name="ggl"></param>
+        /// <param name="ggu"></param>
+        /// <param name="ig"></param>
+        /// <param name="jg"></param>
+        /// <param name="di"></param>
+        /// <returns></returns>
         static Matrix buildMatrix(Vector ggl, Vector ggu, Vector ig, Vector jg, Vector di)
         {
             Matrix res = new Matrix(); for (int i = 0; i < di.Items.Count; i++) res.Add();
@@ -303,7 +298,9 @@ namespace appMKE
 
             //Console.WriteLine("DI:");
             //di.Print();
+            #endregion
 
+            #region Применение 2-го и 3-го краевых условий
             foreach (Boundary item in boundary.Items)
             {
                 item.setSecondCondition();
@@ -343,12 +340,18 @@ namespace appMKE
                 }
 
             }
+            #endregion
 
+            #region Вывод данных
 
             //Console.WriteLine("AFTER BOUND CONDITIONS (2,3)");
 
             //Console.WriteLine("Global vector b:");
             //b.Print();
+            //Console.WriteLine("Global matrix (ig):");
+            //ig.Print();
+            //Console.WriteLine("Global matrix (jg):");
+            //jg.Print();
 
             //Console.WriteLine("Global matrix (ggl):");
             //ggl.Print();
@@ -359,9 +362,13 @@ namespace appMKE
             //Console.WriteLine("DI:");
             //di.Print();
 
+            #endregion
+
             Matrix A = buildMatrix(ggl, ggu, ig, jg, di);
-            //Console.WriteLine("Матрица A:");
-            //A.Print();
+            Console.WriteLine("Матрица A:");
+            A.Print();
+
+            #region Применение 1-гокраевого условия
 
             foreach (Boundary item in boundary.Items)
             {
@@ -369,17 +376,22 @@ namespace appMKE
                 {
                     for (int k = 0; k < item.localMatrix.Items.Count; k++)
                     {
-                        //di.Items[item.p[0]].m += item.localMatrix.Items[0].r.Items[0].m;
-                        //di.Items[item.p[1]].m += item.localMatrix.Items[1].r.Items[1].m;
-                        //int i_beg = ig.Items[item.p[1]].a;
-                        //int n = ig.Items[i_beg + 1].a - ig.Items[i_beg].a;
-                        //for (int j = 0; j < n; j++)
-                        //{
-                        //    ggl.Items[i_beg + j].m = 0;
-                        //    ggu.Items[i_beg + j].m = 0; 
-                        //}
+                        di.Items[item.p[k]].m = 1;
+                        int i_beg = ig.Items[item.p[k]].a;  // порядковый номер элемента в p[k]-й строке
+                        int n = ig.Items[item.p[k]+1].a - ig.Items[item.p[k]].a; // количество элементов в p[k]-й строке
+                        for (int j = 0; j < n; j++)
+                        {
+                            ggl.Items[i_beg + j].m = 0;
+                        }
+                        for (int j = 0; j < jg.Items.Count; j++)
+                        {
+                            if (jg.Items[j].a == item.p[k])
+                            {
+                                ggu.Items[j].m = 0;
+                            }
+                        }
 
-                        int i = item.p[k];
+                            int i = item.p[k];
                         for (int j = 0; j < A.Items.Count; j++)
                         {
                             if (i == j)
@@ -401,19 +413,22 @@ namespace appMKE
                 }
             }
 
-            Console.WriteLine("Matrix A:");
-            A.Print();
+            Matrix B = buildMatrix(ggl, ggu, ig, jg, di);
+            //Console.WriteLine("Matrix A:");
+            //A.Print();
+            //Console.WriteLine("Matrix B:");
+            //B.Print();
 
             Vector gX = A / b;
             Console.WriteLine();
-            Console.WriteLine("vector X:");
+            Console.WriteLine("vector Xa:");
             gX.Print();
 
-            //Console.WriteLine("AFTER BOUND CONDITIONS 1 ");
-            Console.WriteLine();
-            Console.WriteLine("vector b:");
-            b.Print();
-
+            ////Console.WriteLine("AFTER BOUND CONDITIONS 1 ");
+            //Console.WriteLine();
+            //Console.WriteLine("vector b:");
+            //b.Print();
+            //Console.WriteLine();
             //Console.WriteLine("Global matrix (ggl):");
             //ggl.Print();
 
@@ -423,9 +438,9 @@ namespace appMKE
             //Console.WriteLine("DI:");
             //di.Print();
 
-            //Vector gX = loc(ggl, ggu, ig, jg, di, b);
-            //Console.WriteLine("Vector X:");
-            //gX.Print();
+            Vector gXB = loc(ggl, ggu, ig, jg, di, b);
+            Console.WriteLine("Vector Xb:");
+            gXB.Print();
 
 
             #endregion
@@ -454,7 +469,7 @@ namespace appMKE
             {
                 for (int i = 0; i < Items.Count; i++)
                 {
-                    Console.Write($"{(Items[i].m<0?"":" ")}{ (String.Format("{0:f2}", Items[i].m))} ");
+                    Console.Write($"{(Items[i].m<0?"":" ")}{(Items[i].a != 0 ? (String.Format("{0:d2}", Items[i].a)) :(String.Format("{0:f2}", Items[i].m)))} ");
                 }
                 Console.WriteLine();
             }
@@ -464,6 +479,16 @@ namespace appMKE
                 for (int i = 0; i < V1.Items.Count; i++)
                 {
                     res += V1.Items[i].m * V2.Items[i].m;
+                }
+                return res;
+            }
+            static public  Vector operator ^(Vector a, Vector b)//перемножение векторов по элементно
+            {
+                Vector res = new Vector(); for (int i = 0; i < b.Items.Count; i++) res.Add();
+
+                for (int i = 0; i < res.Items.Count; i++)
+                {
+                    res.Items[i].m += a.Items[i].m * b.Items[i].m;
                 }
                 return res;
             }
